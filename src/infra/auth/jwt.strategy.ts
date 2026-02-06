@@ -1,0 +1,34 @@
+import { Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { PassportStrategy } from '@nestjs/passport'
+import { ExtractJwt, Strategy } from 'passport-jwt'
+import { Env } from '@/infra/env'
+import z from 'zod'
+
+const tokenPayloadSchema = z.object({
+  sub: z.uuid(),
+})
+
+export type UserPayload = z.infer<typeof tokenPayloadSchema>
+
+/**
+ * Basicamente aqui criamos um provider que irá receber nossa publica key e se ela é valida como chave pública da nossa aplicação
+ *
+ */
+
+@Injectable()
+export class JWTStrategy extends PassportStrategy(Strategy) {
+  constructor(config: ConfigService<Env, true>) {
+    const publicKey = config.get('JWT_PUBLIC_KEY', { infer: true })
+
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      secretOrKey: Buffer.from(publicKey, 'base64'),
+      algorithms: ['RS256'],
+    })
+  }
+
+  async validate(payload: UserPayload) {
+    return tokenPayloadSchema.parse(payload)
+  }
+}
