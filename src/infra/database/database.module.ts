@@ -8,6 +8,9 @@ import { PrismaAnswerCommentsRepository } from './prisma/repositories/prisma-ans
 import { PrismaAnswersRepository } from './prisma/repositories/prisma-answers-repository'
 import { QuestionsRepository } from '@/domain/forum/application/repositories/questions-repository'
 
+/**
+ * Exports: Lista opcional do subconjunto de provedores que são fornecidos por este módulo e que devem estar disponíveis em outros módulos que importam este módulo.
+ */
 @Module({
   providers: [
     PrismaService,

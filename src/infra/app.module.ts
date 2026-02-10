@@ -5,7 +5,6 @@ import { AuthModule } from './auth/auth.module'
 import { HttpModule } from './http/http.module'
 
 /**
- * Criamos 4 controllers
  *
  * AuthenticateController: utiliza a estratégia de autenticação com JWT token.
  */
