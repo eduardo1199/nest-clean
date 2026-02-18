@@ -1,11 +1,4 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Query,
-  UseGuards,
-} from '@nestjs/common'
-import { JWTAuthGuard } from '@/infra/auth/jwt-auth-guard'
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import z from 'zod'
 import { FetchRecentQuestionsUseCase } from '@/domain/forum/application/use-cases/fetch-recent-questions'
@@ -28,7 +21,6 @@ type PageQueryParamsSchema = z.infer<typeof pageQueryParamsSchema>
  * Ele validar se o token passado na requisição é valido
  */
 @Controller('/questions')
-@UseGuards(JWTAuthGuard)
 export class FetchRecentQuestionsController {
   constructor(
     private fetchRecentQuestionsUseCase: FetchRecentQuestionsUseCase,

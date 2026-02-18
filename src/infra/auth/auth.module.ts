@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { JwtModule } from '@nestjs/jwt'
 import { PassportModule } from '@nestjs/passport'
-import { Env } from '@/infra/env'
 import { JWTStrategy } from './jwt.strategy'
+import { APP_GUARD } from '@nestjs/core'
+import { JWTAuthGuard } from './jwt-auth-guard'
+import { EnvService } from '@/infra/env/env.service'
+import { EnvModule } from '../env/env.module'
 
 /**
  * Aqui as autenticações são feitas de forma base com JWT TOKEN
@@ -16,15 +18,16 @@ import { JWTStrategy } from './jwt.strategy'
   imports: [
     PassportModule,
     JwtModule.registerAsync({
-      inject: [ConfigService],
+      inject: [EnvService],
       global: true,
-      useFactory(config: ConfigService<Env, true>) {
+      imports: [EnvModule],
+      useFactory(config: EnvService) {
         /**
          * Aqui basicamente config captura o arquivo de variáveis .env e prover para adicionar nos parâmetros das chaves public e privada com algoritmo RS256
          */
 
-        const privateKey = config.get('JWT_PRIVATE_KEY', { infer: true })
-        const publicKey = config.get('JWT_PUBLIC_KEY', { infer: true })
+        const privateKey = config.get('JWT_PRIVATE_KEY')
+        const publicKey = config.get('JWT_PUBLIC_KEY')
 
         return {
           signOptions: {
@@ -36,6 +39,13 @@ import { JWTStrategy } from './jwt.strategy'
       },
     }),
   ],
-  providers: [JWTStrategy],
+  providers: [
+    JWTStrategy,
+    EnvService,
+    {
+      provide: APP_GUARD,
+      useClass: JWTAuthGuard,
+    },
+  ],
 })
 export class AuthModule {}
