@@ -5,6 +5,10 @@ import { CreateQuestionController } from '@/infra/http/controllers/create-questi
 import { FetchRecentQuestionsController } from '@/infra/http/controllers/fetch-recent-questions'
 import { DatabaseModule } from '../database/database.module'
 import { CreateQuestionUseCase } from '@/domain/forum/application/use-cases/create-question'
+import { FetchRecentQuestionsUseCase } from '@/domain/forum/application/use-cases/fetch-recent-questions'
+import { AuthenticateUseCase } from '@/domain/forum/application/use-cases/authenticate-student'
+import { RegisterStudentUseCase } from '@/domain/forum/application/use-cases/register-student'
+import { CryptographyModule } from '../cryptography/crytography.module'
 
 /**
  * Imports: São utilizados sempre para importar outros módulos (Optional list of imported modules that export the providers which are required in this module)
@@ -13,13 +17,18 @@ import { CreateQuestionUseCase } from '@/domain/forum/application/use-cases/crea
  */
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, CryptographyModule],
   controllers: [
     CreateAccountController,
     AuthenticateController,
     CreateQuestionController,
     FetchRecentQuestionsController,
   ],
-  providers: [CreateQuestionUseCase],
+  providers: [
+    CreateQuestionUseCase,
+    FetchRecentQuestionsUseCase,
+    AuthenticateUseCase,
+    RegisterStudentUseCase,
+  ],
 })
 export class HttpModule {}

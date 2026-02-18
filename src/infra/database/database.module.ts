@@ -7,6 +7,8 @@ import { PrismaQuestionCommentsRepository } from './prisma/repositories/prisma-q
 import { PrismaAnswerCommentsRepository } from './prisma/repositories/prisma-answer-comments-repository'
 import { PrismaAnswersRepository } from './prisma/repositories/prisma-answers-repository'
 import { QuestionsRepository } from '@/domain/forum/application/repositories/questions-repository'
+import { StudentRepository } from '@/domain/forum/application/repositories/student-repository'
+import { PrismaStudentRepository } from './prisma/repositories/prisma-student-repository'
 
 /**
  * Exports: Lista opcional do subconjunto de provedores que são fornecidos por este módulo e que devem estar disponíveis em outros módulos que importam este módulo.
@@ -18,6 +20,10 @@ import { QuestionsRepository } from '@/domain/forum/application/repositories/que
       provide: QuestionsRepository,
       useClass: PrismaQuestionsRepository,
     },
+    {
+      provide: StudentRepository,
+      useClass: PrismaStudentRepository,
+    },
     PrismaAnswerAttachmentRepository,
     PrismaQuestionAttachmentsRepository,
     PrismaQuestionCommentsRepository,
@@ -28,6 +34,7 @@ import { QuestionsRepository } from '@/domain/forum/application/repositories/que
   exports: [
     PrismaService,
     QuestionsRepository,
+    StudentRepository,
     PrismaAnswerAttachmentRepository,
     PrismaQuestionAttachmentsRepository,
     PrismaQuestionCommentsRepository,
