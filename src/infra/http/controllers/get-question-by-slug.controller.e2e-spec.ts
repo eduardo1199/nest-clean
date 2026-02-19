@@ -1,18 +1,18 @@
 import { AppModule } from '@/infra/app.module'
-
 import { DatabaseModule } from '@/infra/database/database.module'
 import { INestApplication } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { Test } from '@nestjs/testing'
 import request from 'supertest'
-import { QuestionFactory } from 'test/factories/make-question'
 import { StudentFactory } from 'test/factories/make-student'
+import { QuestionFactory } from 'test/factories/make-question'
+import { Slug } from '@/domain/forum/enterprise/entities/value-objects/slug'
 
-describe('Fetch Recent Questions E2E', () => {
+describe('Get Question By Slug E2E', () => {
   let app: INestApplication
-  let jwt: JwtService
   let studentFactory: StudentFactory
   let questionFactory: QuestionFactory
+  let jwt: JwtService
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -27,27 +27,23 @@ describe('Fetch Recent Questions E2E', () => {
     await app.init()
   })
 
-  test('[GET] /questions', async () => {
+  test('[GET] /questions/:slug', async () => {
     const user = await studentFactory.makePrismaStudent()
 
     const accessToken = jwt.sign({ sub: user.id.toString() })
 
-    const questions = await questionFactory.makePrismaManyQuestion(
-      { authorId: user.id },
-      3,
-    )
+    const question = await questionFactory.makePrismaQuestion({
+      authorId: user.id,
+      slug: Slug.create('question-01'),
+    })
 
     const response = await request(app.getHttpServer())
-      .get('/questions')
+      .get('/questions/question-01')
       .set('Authorization', `Bearer ${accessToken}`)
 
     expect(response.statusCode).toBe(200)
     expect(response.body).toEqual({
-      questions: [
-        expect.objectContaining({ title: questions[0].title }),
-        expect.objectContaining({ title: questions[1].title }),
-        expect.objectContaining({ title: questions[2].title }),
-      ],
+      question: expect.objectContaining({ title: question.title }),
     })
   })
 })
