@@ -30,7 +30,7 @@ export class PrismaQuestionCommentMapper {
       id: questionComment.id.toString(),
       createdAt: questionComment.createdAt,
       updatedAt: questionComment.updatedAt,
-      answerId: questionComment.questionId.toValue(),
+      questionId: questionComment.questionId.toValue(),
     }
   }
 }
