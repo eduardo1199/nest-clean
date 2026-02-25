@@ -37,6 +37,7 @@ import { FetchQuestionCommentsController } from './controllers/fetch-question-co
 import { FetchQuestionCommentsUseCase } from '@/domain/forum/application/use-cases/fetch-question-comments'
 import { FetchAnswerCommentsController } from './controllers/fetch-answer-comments-controller'
 import { FetchAnswerCommentsUseCase } from '@/domain/forum/application/use-cases/fetch-answer-comments'
+import { UploadAttachmentController } from './controllers/upload-attachment-controller'
 
 /**
  * Imports: São utilizados sempre para importar outros módulos (Optional list of imported modules that export the providers which are required in this module)
@@ -65,6 +66,7 @@ import { FetchAnswerCommentsUseCase } from '@/domain/forum/application/use-cases
     DeleteAnswerCommentsController,
     FetchQuestionCommentsController,
     FetchAnswerCommentsController,
+    UploadAttachmentController,
   ],
   providers: [
     CreateQuestionUseCase,
