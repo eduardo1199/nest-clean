@@ -27,6 +27,16 @@ import { ChooseQuestionBestAnswerUseCase } from '@/domain/forum/application/use-
 import { ChooseQuestionBestAnswerController } from './controllers/choose-best-answer-controller'
 import { CommentOnQuestionUseCase } from '@/domain/forum/application/use-cases/comment-on-question'
 import { CommentOnQuestionController } from './controllers/comment-on-question-controller'
+import { DeleteQuestionCommentUseCase } from '@/domain/forum/application/use-cases/delete-question-comment'
+import { DeleteQuestionCommentsController } from './controllers/delete-question-comment-controller'
+import { CommentOnAnswerController } from './controllers/comment-on-answer-controller'
+import { CommentOnAnswerUseCase } from '@/domain/forum/application/use-cases/comment-on-answer'
+import { DeleteAnswerCommentsController } from './controllers/delete-answer-comment-controller'
+import { DeleteAnswerCommentUseCase } from '@/domain/forum/application/use-cases/delete-answer-comment'
+import { FetchQuestionCommentsController } from './controllers/fetch-question-comments-controller'
+import { FetchQuestionCommentsUseCase } from '@/domain/forum/application/use-cases/fetch-question-comments'
+import { FetchAnswerCommentsController } from './controllers/fetch-answer-comments-controller'
+import { FetchAnswerCommentsUseCase } from '@/domain/forum/application/use-cases/fetch-answer-comments'
 
 /**
  * Imports: São utilizados sempre para importar outros módulos (Optional list of imported modules that export the providers which are required in this module)
@@ -50,6 +60,11 @@ import { CommentOnQuestionController } from './controllers/comment-on-question-c
     FetchQuestionAnswersController,
     ChooseQuestionBestAnswerController,
     CommentOnQuestionController,
+    DeleteQuestionCommentsController,
+    CommentOnAnswerController,
+    DeleteAnswerCommentsController,
+    FetchQuestionCommentsController,
+    FetchAnswerCommentsController,
   ],
   providers: [
     CreateQuestionUseCase,
@@ -65,6 +80,11 @@ import { CommentOnQuestionController } from './controllers/comment-on-question-c
     FetchQuestionAnswersUseCase,
     ChooseQuestionBestAnswerUseCase,
     CommentOnQuestionUseCase,
+    DeleteQuestionCommentUseCase,
+    CommentOnAnswerUseCase,
+    DeleteAnswerCommentUseCase,
+    FetchQuestionCommentsUseCase,
+    FetchAnswerCommentsUseCase,
   ],
 })
 export class HttpModule {}
