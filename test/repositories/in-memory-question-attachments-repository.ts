@@ -2,6 +2,18 @@ import { QuestionAttachmentsRepository } from '@/domain/forum/application/reposi
 import { QuestionAttachment } from '@/domain/forum/enterprise/entities/question-attachment'
 
 export class InMemoryQuestionAttachmentsRepository implements QuestionAttachmentsRepository {
+  async createMany(attachments: QuestionAttachment[]): Promise<void> {
+    this.items.push(...attachments)
+  }
+
+  async deleteMany(attachments: QuestionAttachment[]): Promise<void> {
+    const questionAttachmentsFiltered = this.items.filter(
+      (item) => !attachments.some((attachment) => attachment.equals(item)),
+    )
+
+    this.items = questionAttachmentsFiltered
+  }
+
   public items: QuestionAttachment[] = []
 
   async findManyByQuestionId(questionId: string) {
