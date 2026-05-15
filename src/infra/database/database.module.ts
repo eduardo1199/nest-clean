@@ -14,6 +14,8 @@ import { QuestionAttachmentsRepository } from '@/domain/forum/application/reposi
 import { QuestionCommentsRepository } from '@/domain/forum/application/repositories/question-comments-repository'
 import { AnswerCommentsRepository } from '@/domain/forum/application/repositories/answer-comments-repository'
 import { AnswersRepository } from '@/domain/forum/application/repositories/answers-repository'
+import { AttachmentRepository } from '@/domain/forum/application/repositories/attachment-repository'
+import { PrismaAttachmentRepository } from './prisma/repositories/prisma-attachment-repository'
 
 /**
  * Exports: Lista opcional do subconjunto de provedores que são fornecidos por este módulo e que devem estar disponíveis em outros módulos que importam este módulo.
@@ -21,6 +23,7 @@ import { AnswersRepository } from '@/domain/forum/application/repositories/answe
 @Module({
   providers: [
     PrismaService,
+    PrismaQuestionAttachmentsRepository,
     {
       provide: QuestionsRepository,
       useClass: PrismaQuestionsRepository,
@@ -49,6 +52,10 @@ import { AnswersRepository } from '@/domain/forum/application/repositories/answe
       provide: AnswersRepository,
       useClass: PrismaAnswersRepository,
     },
+    {
+      provide: AttachmentRepository,
+      useClass: PrismaAttachmentRepository,
+    },
   ],
   /** todo modulo que importa o databasemodule vai herdar o prisma service */
   exports: [
@@ -60,6 +67,7 @@ import { AnswersRepository } from '@/domain/forum/application/repositories/answe
     QuestionCommentsRepository,
     AnswerCommentsRepository,
     AnswersRepository,
+    AttachmentRepository,
   ],
 })
 export class DatabaseModule {}

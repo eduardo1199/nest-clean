@@ -8,7 +8,7 @@ export default defineConfig({
     include: ['**/*.e2e-spec.ts'],
     root: './',
     setupFiles: ['./test/setup-e2e.ts'],
-    hookTimeout: 20000,
+    hookTimeout: 30000,
   },
   plugins: [
     tsConfigPaths(),
