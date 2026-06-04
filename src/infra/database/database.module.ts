@@ -24,6 +24,7 @@ import { PrismaAttachmentRepository } from './prisma/repositories/prisma-attachm
   providers: [
     PrismaService,
     PrismaQuestionAttachmentsRepository,
+    PrismaAnswerAttachmentRepository,
     {
       provide: QuestionsRepository,
       useClass: PrismaQuestionsRepository,
