@@ -1,206 +1,188 @@
 # NestJS + Domain-Driven Design (DDD) & Clean Architecture 🚀
 
-Este projeto é um backend de fórum de perguntas e respostas desenvolvido com **NestJS**, **Prisma** (Postgres), **Vitest** e estruturado com base em conceitos avançados de **Clean Architecture** e **Domain-Driven Design (DDD)**.
+Este repositório contém o backend de um fórum de perguntas e respostas robusto, resiliente e escalável. A aplicação foi construída com **NestJS**, **Prisma** (Postgres), **Redis** (Cache) e **Vitest**, seguindo os rigorosos princípios de **Clean Architecture** (Arquitetura Limpa) e **Domain-Driven Design (DDD)**.
 
-O objetivo principal desta arquitetura é isolar completamente as regras de negócio do domínio de qualquer acoplamento a frameworks, ORMs, servidores web ou bancos de dados externos.
+O principal objetivo dessa arquitetura é **isolar completamente a lógica de negócio do domínio** de quaisquer detalhes de implementação tecnológica (bancos de dados, frameworks, servidores web ou serviços de terceiros).
 
 ---
 
-## 🗺️ Visão Geral das Camadas
+## 🗺️ Arquitetura das Camadas (Layered Architecture)
 
-A estrutura do projeto está organizada em três grandes diretórios sob `src`:
+A estrutura do projeto está dividida em três camadas principais dentro do diretório `src`:
 
 ```
 src/
-├── core/       # Kernel Compartilhado (Shared Kernel) com bases abstratas e utilitários
-├── domain/     # Camada de Domínio pura (Regras de Negócio, Entidades, Use Cases)
-└── infra/      # Camada de Infraestrutura (NestJS, Prisma, Controladores, Adaptadores)
+├── core/       # Kernel Compartilhado (Shared Kernel)
+├── domain/     # Camada de Domínio Pura (Regras de Negócio de Alto Nível)
+└── infra/      # Camada de Infraestrutura (NestJS, ORM, HTTP, Cache, Adaptadores)
 ```
 
-| Camada | Descrição e Componentes | Depende de quem? |
+### 📊 Fluxo de Dependência
+
+A regra fundamental desta arquitetura é a **Direção das Dependências**: *as camadas externas podem depender das internas, mas as camadas internas nunca podem depender de nada que esteja fora delas.*
+
+```mermaid
+graph TD
+  infra[Infraestrutura: NestJS / Prisma / Redis] --> domain[Domínio: Use Cases / Entities / Repositories]
+  infra --> core[Core: Shared Kernel]
+  domain --> core
+```
+
+| Camada | Propósito / Responsabilidades | Depende de quem? |
 | :--- | :--- | :--- |
-| **Core** | Estruturas base de domínio reutilizáveis (`Entity`, `UniqueEntityID`, `Either` para tratamento de erros, `DomainEvents`). | Ninguém |
-| **Domain** | Regras de negócio puras (Use Cases, Entidades de Negócio, Interfaces de Repositório). Nenhuma dependência do NestJS ou Prisma. | Core |
-| **Infra** | Configurações do NestJS, Controladores HTTP, Banco de dados (Prisma), Cryptografia, Upload de arquivos (S3), Envio de Notificações. | Domain & Core |
+| **Core** | Contém classes abstratas, tipos e utilitários compartilhados que são transversais a toda a aplicação (`Entity`, `UniqueEntityID`, `Either` para tratamento de erros funcionais, `DomainEvents`). | Ninguém |
+| **Domain** | O coração do software. Contém entidades de negócio, regras corporativas imutáveis, casos de uso da aplicação e as interfaces abstratas de repositório. Livre de qualquer dependência a NestJS ou Prisma. | `core` |
+| **Infra** | Contém o framework NestJS, o ORM Prisma, servidores HTTP, middlewares, adaptadores de autenticação (JWT), upload de arquivos (S3), banco de dados Postgres e o repositório de cache Redis. | `domain` e `core` |
 
 ---
 
-## 🛠️ Como o NestJS está Configurado no Projeto
+## 🏛️ Camada de Domínio (`domain`): Regras de Negócio Puras
 
-O **NestJS** funciona estritamente como um detalhe de implementação dentro da camada de **Infraestrutura** (`src/infra`). As regras de negócio não conhecem a existência do NestJS.
+A camada de domínio é dividida em subdomínios (Contextos Delimitados ou *Bounded Contexts*):
+* `forum`: Responsável por discussões, respostas, comentários e anexos.
+* `notification`: Responsável pela entrega, leitura e histórico de notificações.
 
-### 🧱 Estrutura de Módulos
-O NestJS organiza o projeto através de módulos desacoplados no diretório [src/infra](src/infra):
+Cada subdomínio divide-se em:
+1. **`enterprise`**: Regras corporativas cruciais que se aplicam mesmo sem um sistema de software (Entidades, Agregados, Objetos de Valor).
+2. **`application`**: Casos de uso específicos da aplicação e interfaces de repositórios (Contratos de persistência).
 
-1. **[app.module.ts](src/infra/app.module.ts)**: O módulo raiz da aplicação, encarregado de carregar a configuração global de variáveis de ambiente (`ConfigModule`), autenticação, HTTP e eventos.
-2. **[http.module.ts](src/infra/http/http.module.ts)**: Expõe todos os controladores HTTP (`Controllers`) da aplicação e provê os Casos de Uso (`Use Cases`) importados do domínio.
-3. **[database.module.ts](src/infra/database/database.module.ts)**: Configura a conexão com o banco de dados via `PrismaService` e realiza a **Inversão de Dependências**.
-4. **[auth.module.ts](src/infra/auth/auth.module.ts)**: Configura as estratégias de autenticação JWT, chaves públicas/privadas RSA e guardas de rotas.
-5. **[cryptography.module.ts](src/infra/cryptography/crytography.module.ts)**: Registra os adaptadores de hash (`BCryptHasher`) e criptografia (`JwtEncrypter`).
-6. **[events.module.ts](src/infra/events/evetns.module.ts)**: Registra subscribers que reagem a eventos de domínio ocorridos no sistema.
+### 🔑 Conceitos Chave de Domínio no Código
 
-### 🔄 Inversão de Dependências (Dependency Inversion Principle - DIP)
-Para garantir que as regras de negócio (`domain`) não dependam do banco de dados (`Prisma` na `infra`), os Use Cases do domínio dependem apenas de **Interfaces/Classes Abstratas**. O NestJS realiza a injeção da implementação concreta no [database.module.ts](src/infra/database/database.module.ts).
+#### 1. Entidades vs. Objetos de Valor (Value Objects)
+* **Entidades (`Entity`)**: Classes que possuem ciclo de vida e identidade persistente única e contínua, mesmo que todos os seus atributos mudem.
+  * *Exemplo*: `Student`, `Instructor`, `Question`.
+  * Herdam de [entity.ts](src/core/entities/entity.ts) e utilizam [unique-entity-id.ts](src/core/entities/unique-entity-id.ts).
+* **Objetos de Valor (`Value Object`)**: Objetos imutáveis que não têm identidade e são definidos apenas pela igualdade de suas propriedades.
+  * *Exemplo*: [slug.ts](src/domain/forum/enterprise/entities/value-objects/slug.ts). Duas slugs com o mesmo texto são consideradas o mesmo valor.
+  * Herdam de [value-object.ts](src/core/entities/value-object.ts).
 
-**Exemplo de Configuração de Provedor:**
-```typescript
-{
-  provide: QuestionsRepository,       // Token Abstrato do Domínio
-  useClass: PrismaQuestionsRepository, // Classe Concreta com Prisma da Infra
-}
+#### 2. Agregados e Raízes de Agregação (Aggregates & Aggregate Roots)
+Um **Agregado** é um agrupamento de entidades e objetos de valor que são modificados como uma única transação e mantêm sua integridade juntos. A **Raiz de Agregação** (`AggregateRoot`) é a única entidade do grupo pela qual o mundo externo pode interagir.
+
+* *Exemplo*: A entidade **[question.ts](src/domain/forum/enterprise/entities/question.ts)** é uma raiz de agregação que gerencia a lista observada de anexos (`QuestionAttachmentList`). Ninguém fora da classe `Question` pode modificar os anexos diretamente; todas as adições e remoções são intermediadas pelas regras de negócio da própria Pergunta.
+* Herda de [aggregate-root.ts](src/core/entities/aggregate-root.ts).
+
+#### 3. Watched List (Coleções Observadas)
+Utilizado para resolver eficientemente atualizações de coleções nos relacionamentos de banco de dados no Prisma. A classe **[watched-list.ts](src/core/entities/watched-list.ts)** monitora quais registros filhas foram adicionados ou removidos da raiz do agregado em memória durante o ciclo de vida da requisição.
+* *Benefício*: Ao persistir, o repositório da infraestrutura chama apenas `createMany` para os novos itens e `deleteMany` para os removidos, evitando apagar e reinserir todos os anexos repetidamente no banco.
+
+#### 4. Tratamento de Erros Funcional (`Either` Monad)
+Evita o lançamento excessivo de exceções e `try/catch` para erros normais do fluxo de negócio (permissão negada, recurso inexistente). O arquivo [either.ts](src/core/either.ts) tipa a resposta de forma binária:
+* **`Left`**: Representa falha/erro de negócio esperado (ex: `NotAllowedError`).
+* **`Right`**: Representa sucesso (ex: `{ question: Question }`).
+* *Uso nos Casos de Uso:*
+  ```typescript
+  type CreateQuestionUseCaseResponse = Either<NotAllowedError, { question: Question }>
+  ```
+
+---
+
+## ⚡ Eventos de Domínio (Domain Events)
+
+O sistema utiliza eventos para notificar outros subdomínios de alterações ocorridas, de maneira totalmente assíncrona e desacoplada.
+
+```
+[Entidade do Aggregate] -(Registra Evento em Memória)-> [AggregateRoot]
+                                                               │
+[Repositório Concreto]  -(Persiste no DB & Dispara Eventos) ───┘
+                                                               │
+                                                       [DomainEvents]
+                                                               │ (Notifica)
+                                                               ▼
+                                                      [Ouvintes/Subscribers]
+                                                   (ex: OnAnswerCreated)
 ```
 
----
-
-## 🏛️ Conceitos de Domain-Driven Design (DDD) Implementados
-
-A lógica de domínio principal está dividida em subdomínios sob `src/domain/`:
-* `forum`: Domínio responsável pelas interações de perguntas, respostas, anexos e comentários.
-* `notification`: Domínio focado no disparo e leitura de notificações para os usuários.
-
-Dentro de cada subdomínio, temos a seguinte divisão:
-* `enterprise`: Regras de negócio da empresa (Entidades, Aggregates, Value Objects) que raramente mudam.
-* `application`: Regras de negócio da aplicação (Use Cases, Interfaces de Repositório).
-
-### 🏷️ 1. Entidades vs. Objetos de Valor (Value Objects)
-* **Entidades (`Entity`)**: Objetos que possuem uma identidade única contínua, mesmo que seus dados internos mudem.
-  * *Exemplo*: `Student`, `Instructor`, `Question`.
-  * Representado pela classe base **[entity.ts](src/core/entities/entity.ts)**.
-* **Objetos de Valor (`Value Object`)**: Objetos imutáveis que não têm identidade e são definidos apenas pelos seus atributos.
-  * *Exemplo*: **[slug.ts](src/domain/forum/enterprise/entities/value-objects/slug.ts)**. Dois Slugs com o mesmo conteúdo textual são semanticamente idênticos.
-  * Representado pela classe base **[value-object.ts](src/core/entities/value-object.ts)**.
-
-### 📦 2. Agregados e Raízes de Agregação (Aggregates / Aggregate Roots)
-Um **Agregado** é um grupo de entidades e objetos de valor associados que são tratados como uma única unidade de consistência de dados. Apenas a **Raiz de Agregação** (`AggregateRoot`) pode ser acessada diretamente de fora, controlando todo o estado interno.
-
-* *Exemplo*: A entidade **[question.ts](src/domain/forum/enterprise/entities/question.ts)** é uma raiz de agregação. Ela encapsula e gerencia suas listas de anexos (`QuestionAttachmentList`), garantindo que nenhuma alteração nos anexos ocorra violando as regras da pergunta.
-* Representado pela classe base **[aggregate-root.ts](src/core/entities/aggregate-root.ts)**.
-
-### 📋 3. Watched List (Coleções Observadas)
-Para gerenciar atualizações eficientes em relacionamentos um-para-muitos (como os anexos de uma pergunta), o projeto utiliza uma estrutura chamada **[watched-list.ts](src/core/entities/watched-list.ts)**.
-
-Ela mantém o histórico de itens adicionados e removidos de uma lista durante a execução das operações em memória. Quando chega a hora de salvar as alterações no banco de dados via Prisma, o repositório sabe exatamente quais linhas inserir no banco de dados (`createMany`) e quais deletar (`deleteMany`), evitando recriar todos os registros desnecessariamente.
-
----
-
-## ⚡ Fluxo de Eventos de Domínio (Domain Events)
-
-Em sistemas complexos, ações em um domínio precisam desencadear reações em outros de forma assíncrona e desacoplada. Para isso, o projeto implementa o padrão de **Eventos de Domínio**.
-
-### Como funciona o ciclo de vida de um Evento:
-
-1. **Registro do Evento**: Quando uma nova resposta é criada na entidade `Answer`, ela registra internamente um evento de criação:
+1. **Registro**: Ao responder uma pergunta, a classe `Answer` registra o evento:
    ```typescript
    this.addDomainEvent(new AnswerCreatedEvent(this))
    ```
-2. **Armazenamento em Memória**: O evento fica retido temporariamente no `AggregateRoot` (em memória) para evitar o disparo de eventos de operações que possam falhar no banco de dados.
-3. **Persistência e Despacho**: Ao realizar a operação de salvamento (`create` ou `save`) no banco de dados, o repositório concreta chama o despachante:
+2. **Persistência**: Quando a resposta é salva pelo repositório (`PrismaAnswersRepository.create`), o banco de dados é atualizado e em seguida é disparado:
    ```typescript
    DomainEvents.dispatchEventsForAggregate(answer.id)
    ```
-4. **Execução do Subscriber**: O subscriber **[on-answer-created.ts](src/domain/notification/application/subscribers/on-answer-created.ts)** captura o evento de criação e executa o caso de uso de envio de notificação (`SendNotificationUseCase`), alertando o autor da pergunta original.
-
-Este design garante o desacoplamento completo: o domínio `forum` não possui referência direta ao domínio de `notification`.
+3. **Reação**: O ouvinte assíncrono **[on-answer-created.ts](src/domain/notification/application/subscribers/on-answer-created.ts)** captura o evento de criação e chama o caso de uso de notificações (`SendNotificationUseCase`) para notificar o autor da pergunta correspondente.
 
 ---
 
-## ↩️ Tratamento de Erros Funcional (Either Monad)
+## 🛠️ Camada de Infraestrutura (`infra`): Framework e Detalhes Técnicos
 
-Para evitar o uso de exceções (`throw new Error`) para desvios esperados de fluxo de negócio (como permissão negada, recurso não encontrado), o projeto usa a estrutura **[either.ts](src/core/either.ts)**.
+A infraestrutura hospeda todas as tecnologias e bibliotecas necessárias para rodar a aplicação, totalmente desacoplada das regras de negócio puras.
 
-```typescript
-export type Either<L, R> = Left<L, R> | Right<L, R>
-```
+### 🛡️ Módulos e Funcionalidades do NestJS
 
-* **`Left`**: Representa um resultado de **Falha/Erro**.
-* **`Right`**: Representa um resultado de **Sucesso**.
+O NestJS coordena as injeções de dependência e expõe os endpoints HTTP organizados em módulos estruturados:
 
-**Benefício no Use Case:**
-O retorno de um Use Case fica tipado de forma explícita, forçando o desenvolvedor (ou controlador HTTP) a tratar tanto o caso de erro quanto o de sucesso:
-
-```typescript
-type CreateQuestionUseCaseResponse = Either<
-  NotAllowedError, // Erro esperado
-  { question: Question } // Sucesso esperado
->
-```
+* **[app.module.ts](src/infra/app.module.ts)**: Configuração principal que importa os módulos HTTP, Banco de dados, Criptografia, Variáveis de Ambiente e Eventos.
+* **[http.module.ts](src/infra/http/http.module.ts)**:
+  * **Controllers**: Recebem a requisição HTTP, validam o payload de entrada usando Pipes baseados em **Zod** (`ZodValidationPipe`), chamam o Use Case do Domínio e retornam os dados.
+  * **Presenters**: Classes como [question-details-presenter.ts](src/infra/http/presents/question-details-presenter.ts) responsáveis por formatar e mapear a entidade de domínio pura em um formato de resposta JSON ideal para o cliente HTTP.
+* **[database.module.ts](src/infra/database/database.module.ts)**:
+  * **PrismaService**: Instanciação da conexão do cliente Postgres.
+  * **Inversão de Dependência (DIP)**: Mapeia tokens abstratos de repositório do domínio para suas implementações concretas do Prisma.
+    * *Exemplo*:
+      ```typescript
+      {
+        provide: QuestionsRepository,
+        useClass: PrismaQuestionsRepository,
+      }
+      ```
+  * **Mappers**: Classes de conversão bidirecional (ex: `PrismaQuestionMapper`) que transformam os modelos gerados pelo Prisma nas entidades de domínio e vice-versa.
+* **[auth.module.ts](src/infra/auth/auth.module.ts)**: Controla a segurança utilizando estratégias de autenticação JWT assinadas com chaves públicas e privadas RSA baseadas em chaves assimétricas de segurança (`private_key.pem` e `public_key.pem`).
+* **[cryptography.module.ts](src/infra/cryptography/crytography.module.ts)**: Implementações de criptografia de domínio (como hash de senhas e geração de tokens).
+* **[env.module.ts](src/infra/env/env.module.ts)**: Valida e provê variáveis de ambiente usando Zod no arquivo de configuração global.
+* **[storage.module.ts](src/infra/storage/storage.module.ts)**: Lida com uploads físicos de arquivos conectando-se ao AWS S3 ou ambientes similares.
 
 ---
 
-## 📁 Estrutura de Diretórios Detalhada
+## ⚡ Camada de Caching com Redis 💨
 
-Aqui está o mapeamento completo da estrutura de pastas:
+Para otimizar o tempo de resposta e poupar chamadas repetidas ao PostgreSQL em consultas complexas ou muito acessadas, o projeto implementou uma camada de **Caching baseada em Redis**.
 
-```text
-src/
-├── core/
-│   ├── either.ts                   # Estrutura funcional Left/Right para erros/sucessos
-│   ├── entities/
-│   │   ├── aggregate-root.ts       # Classe base para Raízes de Agregação
-│   │   ├── entity.ts               # Classe base de Entidades
-│   │   ├── unique-entity-id.ts     # Wrapper para UUIDs
-│   │   └── watched-list.ts         # Lista observada para gerenciar coleções
-│   └── events/
-│       ├── domain-event.ts         # Interface base de evento
-│       ├── domain-events.ts        # Despachante e centralizador de eventos
-│       └── event-handler.ts        # Interface base para ouvintes (subscribers)
-│
-├── domain/
-│   ├── forum/
-│   │   ├── application/            # Camada de Aplicação do Fórum
-│   │   │   ├── cryptography/       # Interfaces de hashing e criptografia
-│   │   │   ├── repositories/       # Interfaces dos Repositórios (contratos de DB)
-│   │   │   └── use-cases/          # Regras de fluxo de aplicação (ex: create-question.ts)
-│   │   └── enterprise/             # Camada Enterprise do Fórum
-│   │       ├── entities/           # Entidades (Question, Answer, Comment, etc)
-│   │       └── events/             # Definição dos eventos específicos (ex: answer-created-event.ts)
-│   └── notification/               # Subdomínio de Notificações
-│
-└── infra/
-    ├── app.module.ts               # Módulo raiz do NestJS
-    ├── main.ts                     # Arquivo de bootstrap da API NestJS
-    ├── auth/                       # Estrutura de autenticação (Passport, JWT, JWT Guards)
-    ├── cryptography/               # Implementações concretas de criptografia (Bcrypt, JWT)
-    ├── database/
-    │   ├── prisma/
-    │   │   ├── mappers/            # Tradutores entre Entidade de Domínio e Modelo do Prisma
-    │   │   ├── repositories/       # Repositórios concretos do Prisma que implementam as interfaces do Domínio
-    │   │   └── prisma.service.ts   # Instância de conexão do cliente Prisma
-    │   └── database.module.ts      # Registro de provedores de dados e inversão de dependência
-    ├── env/                        # Configuração e validação de variáveis de ambiente com Zod
-    ├── http/
-    │   ├── controllers/            # Controladores HTTP (NestJS Controllers)
-    │   ├── presents/               # Mapeamento do retorno HTTP (JSON Serializers)
-    │   └── http.module.ts          # Módulo das rotas e injeções HTTP
-    └── storage/                    # Integração com armazenamento de arquivos (ex: AWS S3)
-```
+O módulo está localizado em [src/infra/cache](src/infra/cache):
+* **[redis.service.ts](src/infra/cache/redis/redis.service.ts)**: Conexão estendendo o cliente `ioredis`, com suporte a ganchos de ciclo de vida do NestJS (`OnModuleDestroy`) para encerramento limpo da conexão ao encerrar a aplicação.
+* **[redis-cache-repository.ts](src/infra/cache/redis/redis-cache-repository.ts)**: Implementação concreta da interface `CacheRepository` configurando chaves com tempo de expiração padrão (TTL de 15 minutos).
+
+### 🚀 Padrão de Cache Utilizado (Cache-Aside / Invalidação)
+
+Essa otimização foi acoplada ao repositório de banco de dados [prisma-questions-repository.ts](src/infra/database/prisma/repositories/prisma-questions-repository.ts):
+
+* **Cache Hit & Miss (`findBySlugWithDetails`)**:
+  Ao buscar os detalhes de uma pergunta por sua slug, o repositório primeiro busca a chave correspondente no Redis:
+  ```typescript
+  const cacheHit = await this.cacheRepository.get(`questions:${slug}:details`)
+  ```
+  * *Cache Hit*: Se houver correspondência, converte os dados JSON guardados de volta para a entidade de domínio (`PrismaQuestionDetailsMapper.toDomain(cacheData)`) e retorna de imediato.
+  * *Cache Miss*: Se não houver, executa a query complexa no Postgres via Prisma, guarda o resultado em string JSON no Redis para acessos futuros e retorna a entidade.
+
+* **Invalidação de Cache (`save`)**:
+  Sempre que uma pergunta é modificada/salva, o cache correspondente a essa slug específica é deletado de imediato no Redis para evitar inconsistências nos dados exibidos ao usuário:
+  ```typescript
+  await this.cacheRepository.delete(`questions:${data.slug}:details`)
+  ```
 
 ---
 
 ## 🧪 Estratégia de Testes
 
-O projeto adota uma rigorosa infraestrutura de testes rodando no **Vitest**:
+O projeto adota duas suites principais de testes automatizados com o **Vitest**:
 
-1. **Testes Unitários**:
-   * Focam nas regras de negócio e Use Cases do domínio.
-   * Utilizam repositórios em memória (*In-Memory Repositories*) simulando o banco de dados de maneira extremamente rápida.
-   * Localizados ao lado das implementações dos Use Cases (ex: `create-question.spec.ts`).
-2. **Testes End-to-End (E2E)**:
-   * Testam o fluxo completo desde a requisição HTTP até a persistência real no banco de dados de teste (Postgres).
-   * Localizados na pasta `src/infra` ou em subpastas de infraestrutura (ex: `create-question.e2e-spec.ts`).
-   * Utilizam o módulo de testes do NestJS (`Test.createTestingModule`) e criam um esquema isolado de banco de dados para cada suite de teste utilizando um runner customizado.
+1. **Testes Unitários (`npm run test`)**:
+   * Testam isoladamente os Casos de Uso do Domínio e Entidades.
+   * Utilizam repositórios mockados em memória extremamente velozes (ex: `InMemoryQuestionsRepository`), garantindo que a suíte execute em poucos segundos.
+2. **Testes E2E - End-to-End (`npm run test:e2e`)**:
+   * Validam a integração ponta a ponta desde a chamada HTTP, passagem pelos guards, persistência real no PostgreSQL e cache no Redis.
+   * Criam e removem esquemas de banco de dados Postgres únicos para cada suíte de forma assíncrona, assegurando o isolamento completo de concorrência.
 
-### 🚀 Comandos Úteis
+### 💻 Comandos Rápidos
 
-* **Rodar testes unitários:**
-  ```bash
-  npm run test
-  ```
-* **Rodar testes E2E:**
-  ```bash
-  npm run test:e2e
-  ```
-* **Executar o servidor em desenvolvimento:**
-  ```bash
-  npm run start:dev
-  ```
+```bash
+# Rodar todos os testes unitários
+npm run test
+
+# Rodar todos os testes end-to-end
+npm run test:e2e
+
+# Executar a aplicação local em modo de desenvolvimento (Watch)
+npm run start:dev
+```
