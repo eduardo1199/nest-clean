@@ -40,6 +40,8 @@ import { FetchAnswerCommentsUseCase } from '@/domain/forum/application/use-cases
 import { UploadAttachmentController } from './controllers/upload-attachment-controller'
 import { StorageModule } from '../storage/storage.module'
 import { UploadAndCreateAttachmentUseCase } from '@/domain/forum/application/use-cases/upload-and-create-attachment'
+import { ReadNotificationController } from './controllers/read-notification-controller'
+import { ReadNotificationUseCase } from '@/domain/notification/application/use-cases/read-notification'
 
 /**
  * Imports: São utilizados sempre para importar outros módulos (Optional list of imported modules that export the providers which are required in this module)
@@ -69,6 +71,7 @@ import { UploadAndCreateAttachmentUseCase } from '@/domain/forum/application/use
     FetchQuestionCommentsController,
     FetchAnswerCommentsController,
     UploadAttachmentController,
+    ReadNotificationController,
   ],
   providers: [
     CreateQuestionUseCase,
@@ -90,6 +93,7 @@ import { UploadAndCreateAttachmentUseCase } from '@/domain/forum/application/use
     FetchQuestionCommentsUseCase,
     FetchAnswerCommentsUseCase,
     UploadAndCreateAttachmentUseCase,
+    ReadNotificationUseCase,
   ],
 })
 export class HttpModule {}

@@ -31,13 +31,11 @@ export class PrismaNotificationRepository implements NotificationsRepository {
   async save(notification: Notification): Promise<void> {
     const data = PrismaNotificationMapper.toPrisma(notification)
 
-    await Promise.all([
-      this.prisma.notification.update({
-        data,
-        where: {
-          id: data.id,
-        },
-      }),
-    ])
+    await this.prisma.notification.update({
+      data,
+      where: {
+        id: data.id,
+      },
+    })
   }
 }

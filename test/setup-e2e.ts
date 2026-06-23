@@ -1,16 +1,26 @@
+import { DomainEvents } from '@/core/events/domain-events'
+import { envSchema } from '@/infra/env/env'
 import 'dotenv/config'
 import { PrismaClient } from 'generated/prisma/client'
+import Redis from 'ioredis'
 import { execSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 
+const env = envSchema.parse(process.env)
+
 const prisma = new PrismaClient()
+const redis = new Redis({
+  host: env.REDIS_HOST,
+  port: env.REDIS_PORT,
+  db: env.REDIS_DB,
+})
 
 function generateUniqueDatabaseURL(schemaId: string) {
   if (!process.env.DATABASE_URL) {
     throw new Error('Please provider a DATABASE_URL environment variable.')
   }
 
-  const url = new URL(process.env.DATABASE_URL)
+  const url = new URL(env.DATABASE_URL)
 
   url.searchParams.set('schema', schemaId)
 
@@ -24,7 +34,14 @@ beforeAll(async () => {
 
   process.env.DATABASE_URL = databaseURL
 
-  execSync('npx prisma migrate deploy')
+  DomainEvents.shouldRun = false
+
+  await redis.flushdb()
+
+  await prisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${schemaId}"`)
+
+  const output = execSync('npx prisma migrate deploy')
+  console.log(output.toString())
 })
 
 afterAll(async () => {

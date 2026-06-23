@@ -56,7 +56,7 @@ describe('On Answer Created', () => {
     inMemoryQuestionsRepository.create(question)
     inMemoryAnswersRepository.create(answer)
 
-    await waitFor(() => {
+    await waitFor(async () => {
       expect(sendNotificationExecuteSpy).toHaveBeenCalled()
     })
   })

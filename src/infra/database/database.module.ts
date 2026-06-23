@@ -18,11 +18,13 @@ import { AttachmentRepository } from '@/domain/forum/application/repositories/at
 import { PrismaAttachmentRepository } from './prisma/repositories/prisma-attachment-repository'
 import { NotificationsRepository } from '@/domain/notification/application/repositories/notifications-repository'
 import { PrismaNotificationRepository } from './prisma/repositories/prisma-notification-repository'
+import { CacheModule } from '../cache/cache.module'
 
 /**
  * Exports: Lista opcional do subconjunto de provedores que são fornecidos por este módulo e que devem estar disponíveis em outros módulos que importam este módulo.
  */
 @Module({
+  imports: [CacheModule],
   providers: [
     PrismaService,
     PrismaQuestionAttachmentsRepository,

@@ -63,7 +63,7 @@ describe('On Question Best Answer Chosen', () => {
 
     inMemoryQuestionsRepository.save(question)
 
-    await waitFor(() => {
+    await waitFor(async () => {
       expect(sendNotificationExecuteSpy).toHaveBeenCalled()
     })
   })
